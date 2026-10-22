@@ -1,37 +1,30 @@
 """
-ac.py - Aho-Corasick Multi-Pattern Matching Engine & Baseline
+ac.py - Exact pattern matching algorithms for educational simulation.
 Educational user-space simulation. Not a real antivirus, not a kernel driver.
-
-Variables:
-n = input bytes, k = number of signatures, m = signature length,
-M = total signature length, z = matches found.
 """
 from collections import deque
 import random
 
 EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 
-
+# Automaton representation for Aho-Corasick
 class Automaton:
-    """Trie with BFS failure links and merged output sets."""
     __slots__ = ('trans', 'fail', 'out', 'node_count', 'k', 'M')
 
     def __init__(self):
-        self.trans: list[dict[int, int]] = [{}]
-        self.fail: list[int] = [0]
-        self.out: list[list[tuple[int, int]]] = [[]]
-        self.node_count: int = 1
-        self.k: int = 0
-        self.M: int = 0
+        self.trans = [{}]
+        self.fail = [0]
+        self.out = [[]]
+        self.node_count = 1
+        self.k = 0
+        self.M = 0
 
-
+# Construction of Aho-Corasick automaton
 def build(signatures: list[bytes]) -> Automaton:
-    """Constructs Aho-Corasick automaton: Trie + BFS failure links + merged outputs."""
     auto = Automaton()
     auto.k = len(signatures)
     auto.M = sum(len(s) for s in signatures)
-
-    # 1. Build Trie
+    # Insert patterns into Trie
     for sid, sig in enumerate(signatures):
         curr = 0
         for b in sig:
@@ -45,13 +38,11 @@ def build(signatures: list[bytes]) -> Automaton:
             curr = nxt
         auto.out[curr].append((sid, len(sig)))
     auto.node_count = len(auto.trans)
-
-    # 2. Build BFS failure links and merge output sets
+    # Build failure links via BFS queue
     q = deque()
     for b, nxt in auto.trans[0].items():
         auto.fail[nxt] = 0
         q.append(nxt)
-
     while q:
         u = q.popleft()
         for b, v in auto.trans[u].items():
@@ -65,9 +56,8 @@ def build(signatures: list[bytes]) -> Automaton:
                 auto.out[v].extend(auto.out[tgt])
     return auto
 
-
+# Full buffer scan with Aho-Corasick
 def scan(auto: Automaton, data: bytes) -> list[tuple[int, int]]:
-    """Scans full buffer; returns sorted list of (start_position, signature_id)."""
     matches = []
     curr = 0
     trans, fail, out = auto.trans, auto.fail, auto.out
@@ -80,9 +70,8 @@ def scan(auto: Automaton, data: bytes) -> list[tuple[int, int]]:
                 matches.append((i - m + 1, sid))
     return sorted(matches)
 
-
+# Streaming scan with Aho-Corasick across block boundaries
 def scan_stream(auto: Automaton, chunks) -> list[tuple[int, int]]:
-    """Carries automaton state across chunks without re-reading or overlap."""
     curr = 0
     pos = 0
     trans, fail, out = auto.trans, auto.fail, auto.out
@@ -98,35 +87,118 @@ def scan_stream(auto: Automaton, chunks) -> list[tuple[int, int]]:
             pos += 1
     return sorted(matches)
 
-
+# Naive pattern matching (pure Python byte-by-byte comparison)
 def naive(signatures: list[bytes], data: bytes) -> list[tuple[int, int]]:
-    """
-    Per-signature bytes.find loop (k passes).
-    Note: bytes.find is implemented in C, so compare scaling trends (O(k*n) vs O(n+z)),
-    not raw interpreted Python vs native C speed.
-    """
     matches = []
+    n = len(data)
     for sid, sig in enumerate(signatures):
-        if not sig:
+        m = len(sig)
+        if m == 0 or m > n:
             continue
-        pos = 0
-        while True:
-            idx = data.find(sig, pos)
-            if idx == -1:
-                break
-            matches.append((idx, sid))
-            pos = idx + 1
+        for i in range(n - m + 1):
+            matched = True
+            for j in range(m):
+                if data[i + j] != sig[j]:
+                    matched = False
+                    break
+            if matched:
+                matches.append((i, sid))
     return sorted(matches)
 
+# Helper for KMP failure table
+def _kmp_table(sig: bytes) -> list[int]:
+    m = len(sig)
+    pi = [0] * m
+    j = 0
+    for i in range(1, m):
+        while j > 0 and sig[i] != sig[j]:
+            j = pi[j - 1]
+        if sig[i] == sig[j]:
+            j += 1
+            pi[i] = j
+    return pi
 
+# Knuth-Morris-Pratt multi-pass algorithm
+def kmp(signatures: list[bytes], data: bytes) -> list[tuple[int, int]]:
+    matches = []
+    n = len(data)
+    for sid, sig in enumerate(signatures):
+        m = len(sig)
+        if m == 0 or m > n:
+            continue
+        pi = _kmp_table(sig)
+        j = 0
+        for i in range(n):
+            b = data[i]
+            while j > 0 and b != sig[j]:
+                j = pi[j - 1]
+            if b == sig[j]:
+                j += 1
+            if j == m:
+                matches.append((i - m + 1, sid))
+                j = pi[j - 1]
+    return sorted(matches)
+
+# Preprocessing tables for Boyer-Moore
+def _bm_tables(sig: bytes) -> tuple[dict[int, int], list[int]]:
+    m = len(sig)
+    bad_char = {sig[i]: i for i in range(m)}
+    suff = [0] * m
+    suff[m - 1] = m
+    g = f = m - 1
+    for i in range(m - 2, -1, -1):
+        if i > g and suff[i + m - 1 - f] < i - g:
+            suff[i] = suff[i + m - 1 - f]
+        else:
+            if i < g:
+                g = i
+            f = i
+            while g >= 0 and sig[g] == sig[g + m - 1 - f]:
+                g -= 1
+            suff[i] = f - g
+    good_suffix = [m] * m
+    j = 0
+    for i in range(m - 1, -1, -1):
+        if suff[i] == i + 1:
+            while j < m - 1 - i:
+                if good_suffix[j] == m:
+                    good_suffix[j] = m - 1 - i
+                j += 1
+    for i in range(m - 1):
+        good_suffix[m - 1 - suff[i]] = m - 1 - i
+    return bad_char, good_suffix
+
+# Boyer-Moore multi-pass algorithm
+def boyer_moore(signatures: list[bytes], data: bytes) -> list[tuple[int, int]]:
+    matches = []
+    n = len(data)
+    for sid, sig in enumerate(signatures):
+        m = len(sig)
+        if m == 0 or m > n:
+            continue
+        bad_char, good_suffix = _bm_tables(sig)
+        shift = 0
+        while shift <= n - m:
+            j = m - 1
+            while j >= 0 and sig[j] == data[shift + j]:
+                j -= 1
+            if j < 0:
+                matches.append((shift, sid))
+                shift += good_suffix[0]
+            else:
+                c = data[shift + j]
+                bc_shift = j - bad_char.get(c, -1)
+                gs_shift = good_suffix[j]
+                shift += max(bc_shift, gs_shift)
+    return sorted(matches)
+
+# Synthetic signature generation
 def make_signatures(k: int, seed: int = 42, min_m: int = 8, max_m: int = 32) -> list[bytes]:
-    """Generates k random signatures over full byte alphabet (0-255)."""
     rng = random.Random(seed)
     return [rng.randbytes(rng.randint(min_m, max_m)) for _ in range(k)]
 
-
-def make_data(n: int, signatures: list[bytes] = None, plant: int = 10, seed: int = 42) -> tuple[bytes, list[tuple[int, int]]]:
-    """Generates n random bytes with planted signatures at known offsets."""
+# Synthetic data generation with planted signatures
+def make_data(n: int, signatures: list[bytes] = None, plant: int = 10, seed: int = 1042) -> tuple[bytes, list[tuple[int, int]]]:
     rng = random.Random(seed)
     buf = bytearray(rng.randbytes(n))
     planted = []

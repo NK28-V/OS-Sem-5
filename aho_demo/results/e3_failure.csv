@@ -1,5 +1,5 @@
 file_type,policy,decision_time_ms,outcome,security_effect
-clean_file,fail_open,206.67,ALLOWED,Clean file available
-clean_file,fail_closed,205.56,DENIED,DENIAL OF SERVICE (Clean file blocked)
-infected_file,fail_open,202.03,ALLOWED,SECURITY BREACH (Infected executed)
-infected_file,fail_closed,203.31,DENIED,Threat blocked
+clean_file,fail_open,203.0072,ALLOWED,Clean file available
+clean_file,fail_closed,206.6351,DENIED,DENIAL OF SERVICE
+infected_file,fail_open,205.6765,ALLOWED,SECURITY BREACH
+infected_file,fail_closed,204.3061,DENIED,Threat blocked

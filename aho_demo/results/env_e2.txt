@@ -1,5 +1,5 @@
 Experiment: e2
-Date/Time: 2026-10-21 16:17:43
+Date/Time: 2026-10-22 21:31:13
 OS: Windows 11 (Windows-11-10.0.26300-SP0)
 Python: 3.13.14 (MSC v.1944 64 bit (AMD64))
 CPU Cores: 8 phys, 16 log
@@ -7,6 +7,6 @@ RAM: 15.3 GB
 Random Seed: 42
 psutil available: yes
 matplotlib available: yes
-Parameters: {"k": 1000, "n_bytes": 20971520, "repeats": 5, "blocks": ["4 KB", "64 KB", "1 MB", "16 MB", "Whole file"]}
+Parameters: {"k": 1000, "n_bytes": 4194304, "repeats": 2}
 Notice: Educational user-space simulation. Not a real antivirus, not a kernel driver.
 Caution: Do not compare absolute numbers across machines. Relative trends illustrate OS trade-offs.
