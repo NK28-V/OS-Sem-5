@@ -87,3 +87,4 @@ python run.py all
 2. **User-Space Emulation:** Real-time AV intercepts I/O in kernel ring 0 via filesystem minifilter drivers (e.g. `FLTMGR.SYS` on Windows) or `fanotify` on Linux.
 3. **Synthetic Signatures:** Random bytes uniformly distribute transitions; real malware opcodes exhibit distinct clustering.
 4. **OS Page Cache & Host Antivirus:** Repeated file opens hit memory caches. Host AV (e.g., Windows Defender) may intercept or lock test files during execution.
+...
