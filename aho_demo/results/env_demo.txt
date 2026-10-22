@@ -1,0 +1,12 @@
+Experiment: demo
+Date/Time: 2026-10-21 16:14:18
+OS: Windows 11 (Windows-11-10.0.26300-SP0)
+Python: 3.13.14 (MSC v.1944 64 bit (AMD64))
+CPU Cores: 8 phys, 16 log
+RAM: 15.3 GB
+Random Seed: 42
+psutil available: yes
+matplotlib available: yes
+Parameters: {}
+Notice: Educational user-space simulation. Not a real antivirus, not a kernel driver.
+Caution: Do not compare absolute numbers across machines. Relative trends illustrate OS trade-offs.
