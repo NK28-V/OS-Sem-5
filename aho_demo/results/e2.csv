@@ -1,6 +1,0 @@
-block,bytes,read_calls,med_time_s,tp_mbs,matches_equal
-4 KB,4096,1024,0.8097,4.9402,True
-64 KB,65536,64,0.8060,4.9631,True
-1 MB,1048576,4,0.8286,4.8275,True
-16 MB,16777216,1,0.8092,4.9429,True
-Whole file,4194304,1,0.8524,4.6926,True
